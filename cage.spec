@@ -1,6 +1,13 @@
 Name:           {{{ git_dir_name }}}
-Version:        {{{ git_dir_version }}}
-Release:        1%{?dist}
+# Hardcoded rather than {{{ git_dir_version }}}: this branch forked before
+# the v0.3.1 tag was cut, so git describe resolves against v0.3.0 instead
+# (not an ancestor of v0.3.1), giving an auto-derived version like
+# "0.0.git.390.<sha>" — which sorts BELOW stock Fedora's cage-0.3.1-1, so
+# `dnf install cage` would never actually prefer this COPR build over an
+# already-installed stock one. Pin to the upstream version this is based
+# on, with a .sichos release suffix, so it always sorts higher.
+Version:        0.3.1
+Release:        2.sichos%{?dist}
 Summary:        A Wayland kiosk (SichOS fork — multi-monitor SDDM login fix)
 
 License:        MIT
