@@ -1,11 +1,18 @@
 Name:           {{{ git_dir_name }}}
-# Hardcoded rather than {{{ git_dir_version }}}: this branch forked before
-# the v0.3.1 tag was cut, so git describe resolves against v0.3.0 instead
+# Epoch, not just a Version bump: this needs to keep sorting ABOVE
+# whatever cage Fedora ships even after future upstream releases (0.3.2,
+# 0.4.0, ...), without needing to hand-chase that version here forever.
+# RPM version comparison checks Epoch before Version/Release at all —
+# any Epoch > the implicit default of 0 unconditionally outranks a
+# same-or-higher Version at epoch 0, regardless of what that Version
+# string actually is. Without this, pinning Version to e.g. "0.3.1"
+# only outranks stock cage-0.3.1-1 until Fedora ships something newer,
+# at which point `dnf install cage` silently prefers stock again.
+Epoch:          1
+# {{{ git_dir_version }}} isn't used here: this branch forked before the
+# v0.3.1 tag was cut, so git describe resolves against v0.3.0 instead
 # (not an ancestor of v0.3.1), giving an auto-derived version like
-# "0.0.git.390.<sha>" — which sorts BELOW stock Fedora's cage-0.3.1-1, so
-# `dnf install cage` would never actually prefer this COPR build over an
-# already-installed stock one. Pin to the upstream version this is based
-# on, with a .sichos release suffix, so it always sorts higher.
+# "0.0.git.390.<sha>" instead of something meaningfully tied to 0.3.1.
 Version:        0.3.1
 Release:        2.sichos%{?dist}
 Summary:        A Wayland kiosk (SichOS fork — multi-monitor SDDM login fix)
