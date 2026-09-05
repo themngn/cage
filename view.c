@@ -90,11 +90,31 @@ view_center(struct cg_view *view, struct wlr_box *layout_box)
 	}
 }
 
+/* Resolves view->fullscreen_output_name (if set) to the still-live
+ * wlr_output with that name, or NULL if unset or the output has since
+ * disappeared (falls back to the union-of-all-outputs box in that case,
+ * same as if no output had ever been requested). */
+static struct wlr_output *
+view_fullscreen_output(struct cg_view *view)
+{
+	if (!view->fullscreen_output_name) {
+		return NULL;
+	}
+
+	struct cg_output *output;
+	wl_list_for_each (output, &view->server->outputs, link) {
+		if (strcmp(output->wlr_output->name, view->fullscreen_output_name) == 0) {
+			return output->wlr_output;
+		}
+	}
+	return NULL;
+}
+
 void
 view_position(struct cg_view *view)
 {
 	struct wlr_box layout_box;
-	wlr_output_layout_get_box(view->server->output_layout, NULL, &layout_box);
+	wlr_output_layout_get_box(view->server->output_layout, view_fullscreen_output(view), &layout_box);
 
 	if (view_is_primary(view) || view_extends_output_layout(view, &layout_box)) {
 		view_maximize(view, &layout_box);
@@ -207,6 +227,7 @@ view_init(struct cg_view *view, struct cg_server *server, enum cg_view_type type
 	view->server = server;
 	view->type = type;
 	view->impl = impl;
+	view->fullscreen_output_name = NULL;
 }
 
 struct cg_view *

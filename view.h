@@ -30,6 +30,13 @@ struct cg_view {
 	/* The view has a position in layout coordinates. */
 	int lx, ly;
 
+	/* Non-NULL if the client requested fullscreen on a specific output
+	 * (xdg_toplevel::set_fullscreen(output)) — looked up by name rather
+	 * than cached as a wlr_output* to stay safe across output hotplug.
+	 * NULL means "no output preference", the original union-of-all-outputs
+	 * behavior. */
+	char *fullscreen_output_name;
+
 	enum cg_view_type type;
 	const struct cg_view_impl *impl;
 

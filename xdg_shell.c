@@ -6,9 +6,12 @@
  * See the LICENSE file accompanying this file.
  */
 
+#define _POSIX_C_SOURCE 200809L
+
 #include <assert.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <string.h>
 #include <wayland-server-core.h>
 #include <wlr/types/wlr_foreign_toplevel_management_v1.h>
 #include <wlr/types/wlr_scene.h>
@@ -181,6 +184,7 @@ static void
 destroy(struct cg_view *view)
 {
 	struct cg_xdg_shell_view *xdg_shell_view = xdg_shell_view_from_view(view);
+	free(view->fullscreen_output_name);
 	free(xdg_shell_view);
 }
 
@@ -198,8 +202,28 @@ set_fullscreen(struct cg_xdg_shell_view *xdg_shell_view, bool fullscreen)
 	 * Certain clients do not like figuring out their own window geometry if they
 	 * display in fullscreen mode, so we set it here.
 	 */
+
+	/* xdg_toplevel::set_fullscreen(output) lets a client target a specific
+	 * output instead of "the whole display" — e.g. sddm-greeter creates one
+	 * toplevel per screen and fullscreens each on its own QScreen's output
+	 * (confirmed in sddm's GreeterApp::addViewForScreen: setScreen() then
+	 * showFullScreen()). Previously this was ignored outright (always NULL
+	 * = the union of every output), which is why any such client always got
+	 * stretched across the combined resolution of all monitors instead of
+	 * appearing correctly on the one it actually asked for. Remember the
+	 * requested output by name (view_position(), called later on
+	 * map/commit, needs the same box) so plain single-output fullscreen
+	 * requests (output == NULL) keep the original union-box behavior
+	 * unchanged.
+	 */
+	struct wlr_output *requested_output = xdg_shell_view->xdg_toplevel->requested.fullscreen_output;
+
+	free(xdg_shell_view->view.fullscreen_output_name);
+	xdg_shell_view->view.fullscreen_output_name =
+		requested_output && requested_output->name ? strdup(requested_output->name) : NULL;
+
 	struct wlr_box layout_box;
-	wlr_output_layout_get_box(xdg_shell_view->view.server->output_layout, NULL, &layout_box);
+	wlr_output_layout_get_box(xdg_shell_view->view.server->output_layout, requested_output, &layout_box);
 	wlr_xdg_toplevel_set_size(xdg_shell_view->xdg_toplevel, layout_box.width, layout_box.height);
 	wlr_xdg_toplevel_set_fullscreen(xdg_shell_view->xdg_toplevel, fullscreen);
 }
